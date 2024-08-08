@@ -52,6 +52,12 @@ jobs:
           sleep 1
         done
 
+    - name: Print environment variables
+      run: printenv
+
+    - name: Check PostgreSQL logs
+      run: docker logs $(docker ps -q --filter "name=postgres")
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
