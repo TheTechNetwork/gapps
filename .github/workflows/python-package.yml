@@ -2,9 +2,9 @@ name: Python package CI
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [ "*" ]  # Trigger on pushes to any branch
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ]  # Trigger only on PRs targeting the 'main' branch
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v4
