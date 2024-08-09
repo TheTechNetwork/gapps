@@ -19,11 +19,6 @@ jobs:
           POSTGRES_PASSWORD: mypassword
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U myuser -d mydatabase"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     strategy:
       fail-fast: false
@@ -52,11 +47,18 @@ jobs:
           sleep 1
         done
 
-    - name: Print running Docker containers
-      run: docker ps
+    - name: Get PostgreSQL Container ID
+      id: get_container_id
+      run: echo "::set-env name=POSTGRES_CONTAINER_ID::$(docker ps -q --filter "ancestor=postgres:13")"
 
-    - name: Check PostgreSQL logs
-      run: docker logs $(docker ps -q --filter "name=postgres")
+    - name: Print PostgreSQL Container ID
+      run: echo "PostgreSQL container ID is ${{ env.POSTGRES_CONTAINER_ID }}"
+
+    - name: Set PostgreSQL Hostname
+      run: |
+        POSTGRES_CONTAINER_NAME=$(docker inspect --format '{{.Name}}' ${{ env.POSTGRES_CONTAINER_ID }} | cut -c2-)
+        echo "Resolved PostgreSQL container name is $POSTGRES_CONTAINER_NAME"
+        echo "POSTGRES_HOST=$POSTGRES_CONTAINER_NAME" >> $GITHUB_ENV
 
     - name: Lint with flake8
       run: |
