@@ -54,23 +54,13 @@ jobs:
         for i in {1..60}; do
           pg_isready -h localhost -U myuser -d mydatabase && break
           echo "Waiting for database to be ready... ($i/60)"
-          sleep 1
+          sleep 2
         done
 
-    - name: Get PostgreSQL Container ID
-      run: echo "POSTGRES_CONTAINER_ID=$(docker ps -q --filter 'ancestor=postgres')" >> $GITHUB_ENV
-
-    - name: Print PostgreSQL Container ID
-      run: echo "PostgreSQL container ID is ${{ env.POSTGRES_CONTAINER_ID }}"
-
-    - name: Set PostgreSQL Hostname
+    - name: Print PostgreSQL Connection Information
       run: |
-        POSTGRES_CONTAINER_NAME=$(docker inspect --format '{{.Name}}' ${{ env.POSTGRES_CONTAINER_ID }} | cut -c2-)
-        echo "Resolved PostgreSQL container name is $POSTGRES_CONTAINER_NAME"
-        echo "POSTGRES_HOST=$POSTGRES_CONTAINER_NAME" >> $GITHUB_ENV
-
-    - name: Print all environment variables
-      run: printenv
+        echo "PostgreSQL host: localhost"
+        echo "PostgreSQL port: 5432"
 
     - name: Lint with flake8
       run: |
