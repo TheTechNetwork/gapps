@@ -2,9 +2,9 @@ name: Python package CI
 
 on:
   push:
-    branches: [ "*" ]  # Trigger on pushes to any branch
+    branches: [ "*" ]
   pull_request:
-    branches: [ "main" ]  # Trigger only on PRs targeting the 'main' branch
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -52,8 +52,8 @@ jobs:
           sleep 1
         done
 
-    - name: Print environment variables
-      run: printenv
+    - name: Print running Docker containers
+      run: docker ps
 
     - name: Check PostgreSQL logs
       run: docker logs $(docker ps -q --filter "name=postgres")
