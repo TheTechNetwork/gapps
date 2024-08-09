@@ -16,12 +16,13 @@ def wait_for_postgres(host, port, user, password, dbname, retries=30, delay=1):
             return True
         except psycopg2.OperationalError as e:
             print(f"Waiting for PostgreSQL to be ready... ({i+1}/{retries})")
+            print(f"Error: {e}")
             time.sleep(delay)
     raise Exception("PostgreSQL is not ready after several attempts")
 
 @pytest.fixture(scope='session', autouse=True)
 def wait_for_db():
-    host = 'localhost'
+    host = 'localhost'  # Ensure you're connecting to localhost if that's where your service is
     port = 5432
     user = 'myuser'
     password = 'mypassword'
@@ -33,7 +34,7 @@ def wait_for_db():
 
 @pytest.fixture(scope='session')
 def db_url():
-    db_url = "postgresql://myuser:mypassword@localhost:5432/mydatabase"
+    db_url = "postgresql://myuser:mypassword@localhost:5432/mydatabase"  # Use localhost here
     print(f"DB URL: {db_url}")
     return db_url
 
