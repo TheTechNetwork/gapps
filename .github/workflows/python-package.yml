@@ -48,8 +48,7 @@ jobs:
         done
 
     - name: Get PostgreSQL Container ID
-      id: get_container_id
-      run: echo "::set-env name=POSTGRES_CONTAINER_ID::$(docker ps -q --filter "ancestor=postgres:13")"
+      run: echo "POSTGRES_CONTAINER_ID=$(docker ps -q --filter "ancestor=postgres:13")" >> $GITHUB_ENV
 
     - name: Print PostgreSQL Container ID
       run: echo "PostgreSQL container ID is ${{ env.POSTGRES_CONTAINER_ID }}"
