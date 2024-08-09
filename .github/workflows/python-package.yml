@@ -59,6 +59,9 @@ jobs:
         echo "Resolved PostgreSQL container name is $POSTGRES_CONTAINER_NAME"
         echo "POSTGRES_HOST=$POSTGRES_CONTAINER_NAME" >> $GITHUB_ENV
 
+    - name: Print all environment variables
+      run: printenv
+
     - name: Lint with flake8
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
