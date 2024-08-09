@@ -22,7 +22,7 @@ def wait_for_postgres(host, port, user, password, dbname, retries=30, delay=1):
 
 @pytest.fixture(scope='session', autouse=True)
 def wait_for_db():
-    host = 'localhost'  # Ensure you're connecting to localhost if that's where your service is
+    host = 'postgres'  # Use 'postgres' as the hostname
     port = 5432
     user = 'myuser'
     password = 'mypassword'
@@ -34,7 +34,7 @@ def wait_for_db():
 
 @pytest.fixture(scope='session')
 def db_url():
-    db_url = "postgresql://myuser:mypassword@localhost:5432/mydatabase"  # Use localhost here
+    db_url = "postgresql://myuser:mypassword@postgres:5432/mydatabase"  # Use 'postgres' as the hostname
     print(f"DB URL: {db_url}")
     return db_url
 
