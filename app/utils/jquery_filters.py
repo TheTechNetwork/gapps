@@ -4,77 +4,105 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import load_only
 from inspect import signature
 import types
+import logging
 
+logger = logging.getLogger(__name__)
+
+# Assuming TableNotFoundError is a custom exception that needs to be defined or imported
+class TableNotFoundError(Exception):
+    pass
+
+OPERATORS = {
+    'equal': lambda f, a: f.__eq__(a),
+    'not_equal': lambda f, a: f.__ne__(a),
+    'less': lambda f, a: f.__lt__(a),
+    'greater': lambda f, a: f.__gt__(a),
+    'less_or_equal': lambda f, a: f.__le__(a),
+    'greater_or_equal': lambda f, a: f.__ge__(a),
+    'in': lambda f, a: f.in_(a),
+    'not_in': lambda f, a: f.notin_(a),
+    'ends_with': lambda f, a: f.like('%' + a),
+    'begins_with': lambda f, a: f.like(a + '%'),
+    'contains': lambda f, a: f.like('%' + a + '%'),
+    'not_contains': lambda f, a: f.notlike('%' + a + '%'),
+    'not_begins_with': lambda f, a: f.notlike(a + '%'),
+    'not_ends_with': lambda f, a: f.notlike('%' + a),
+    'is_empty': lambda f: f.__eq__(''),
+    'is_not_empty': lambda f: f.__ne__(''),
+    'is_null': lambda f: f.is_(None),
+    'is_not_null': lambda f: f.isnot(None),
+    'between': lambda f, a: f.between(a[0], a[1])
+}
 
 def create_filter(type, id, label):
     all_filters = {
         "integer": {
-          "id": id,
-          "label": label,
-          "operators": [
-              "greater",
-              "less",
-              "equal",
-              "not_equal",
-              "less_or_equal",
-              "greater_or_equal",
-              "between",
-              "in",
-              "not_in",
-              "is_null",
-              "is_not_null",
-          ],
-          "input": "number",
-          "type": "integer"
+            "id": id,
+            "label": label,
+            "operators": [
+                "greater",
+                "less",
+                "equal",
+                "not_equal",
+                "less_or_equal",
+                "greater_or_equal",
+                "between",
+                "in",
+                "not_in",
+                "is_null",
+                "is_not_null",
+            ],
+            "input": "number",
+            "type": "integer"
         },
         "integer_select": {
-          "id": id,
-          "label": label,
-          "input": "select",
-          "type": "integer",
-          "values":{},
-          "operators": [
-              "equal",
-              "not_equal",
-              "contains",
-              "not_contains",
-              "not_in",
-              "is_null",
-              "is_not_null"
-          ],
+            "id": id,
+            "label": label,
+            "input": "select",
+            "type": "integer",
+            "values": {},
+            "operators": [
+                "equal",
+                "not_equal",
+                "contains",
+                "not_contains",
+                "not_in",
+                "is_null",
+                "is_not_null"
+            ],
         },
         "string": {
-          "id": id,
-          "label": label,
-          "operators": [
-              "equal",
-              "not_equal",
-              "contains",
-              "not_contains",
-              "ends_with",
-              "not_ends_with",
-              "begins_with",
-              "not_begins_with",
-              "in",
-              "is_empty",
-              "not_in",
-              "is_null",
-              "is_not_null"
-          ],
-          "input": "text",
-          "type": "string"
+            "id": id,
+            "label": label,
+            "operators": [
+                "equal",
+                "not_equal",
+                "contains",
+                "not_contains",
+                "ends_with",
+                "not_ends_with",
+                "begins_with",
+                "not_begins_with",
+                "in",
+                "is_empty",
+                "not_in",
+                "is_null",
+                "is_not_null"
+            ],
+            "input": "text",
+            "type": "string"
         },
         "boolean": {
         },
         "radio": {
-          "id": id,
-          "label": label,
-          "type": 'integer',
-          "input": 'radio',
-          "values": {
-            1: 'Yes',
-            0: 'No'
-          }
+            "id": id,
+            "label": label,
+            "type": 'integer',
+            "input": 'radio',
+            "values": {
+                1: 'Yes',
+                0: 'No'
+            }
         },
         "datetime": {
             "id": id,
@@ -97,27 +125,6 @@ def create_filter(type, id, label):
     elif type == "varchar":
         type = "string"
     return all_filters.get(type)
-
-OPERATORS = {'equal': lambda f, a: f.__eq__(a),
-             'not_equal': lambda f, a: f.__ne__(a),
-             'less': lambda f, a: f.__lt__(a),
-             'greater': lambda f, a: f.__gt__(a),
-             'less_or_equal': lambda f, a: f.__le__(a),
-             'greater_or_equal': lambda f, a: f.__ge__(a),
-             'in': lambda f, a: f.in_(a),
-             'not_in': lambda f, a: f.notin_(a),
-             'ends_with': lambda f, a: f.like('%' + a),
-             'begins_with': lambda f, a: f.like(a + '%'),
-             'contains': lambda f, a: f.like('%' + a + '%'),
-             'not_contains': lambda f, a: f.notlike('%' + a + '%'),
-             'not_begins_with': lambda f, a: f.notlike(a + '%'),
-             'not_ends_with': lambda f, a: f.notlike('%' + a),
-             'is_empty': lambda f: f.__eq__(''),
-             'is_not_empty': lambda f: f.__ne__(''),
-             'is_null': lambda f: f.is_(None),
-             'is_not_null': lambda f: f.isnot(None),
-             'between': lambda f, a: f.between(a[0], a[1])
-}
 
 class Filter(object):
     def __init__(self, models, query, operators=None, tables=[]):
@@ -175,8 +182,8 @@ class Filter(object):
     """
     def add_relationships(self):
         _query = _query.querybuilder(filter)
-        for name,rel in sqlalchemy.inspect(models.Agent).relationships.items():
-            _query = _query.join(getattr(models.Agent,name),aliased=True)
+        for name, rel in sqlalchemy.inspect(models.Agent).relationships.items():
+            _query = _query.join(getattr(models.Agent, name), aliased=True)
         _query = _query.filter(models.Group.name == "Default Group")
     """
 
@@ -192,8 +199,8 @@ class Filter(object):
                 except KeyError:
                     raise TableNotFoundError(cond['field'].split('.')[0])
                 for table in query.column_descriptions:
-                   if table['entity'] == model:
-                       break
+                    if table['entity'] == model:
+                        break
                 else:
                     query = query.add_entity(model)
                 field = getattr(model, cond['field'].split('.')[1])
@@ -211,3 +218,41 @@ class Filter(object):
                     operator = and_
                 cond_list.append(operator(*cond_subrule))
         return query, cond_list
+
+class JQueryFilters:
+    def __init__(self, user):
+        self.user = user
+
+    def filter_data(self, data):
+        """
+        Apply filters to the data based on the user's preferences and permissions.
+        """
+        try:
+            # Example filter logic
+            filtered_data = [d for d in data if self._user_has_permission(d)]
+            return filtered_data
+        except Exception as e:
+            logger.error(f"Error filtering data: {e}")
+            raise
+
+    def _user_has_permission(self, data_item):
+        """
+        Check if the user has permission to access the data item.
+        """
+        # Placeholder logic for permission check
+        return True
+
+    def raise_table_not_found_error(self, cond):
+        if cond['field'].split('.')[0] not in self.get_available_tables():
+            raise TableNotFoundError(cond['field'].split('.')[0])
+
+    def get_available_tables(self):
+        # Placeholder method for getting available tables
+        return ["table1", "table2"]
+
+# Usage example
+user = None  # Define or retrieve the user object as appropriate for your application
+data = []    # Define or retrieve the data list as appropriate for your application
+
+filters = JQueryFilters(user)
+filtered_data = filters.filter_data(data)
